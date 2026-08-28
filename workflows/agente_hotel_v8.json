@@ -1,0 +1,1061 @@
+{
+  "name": "Hotel VCP - Agente v8 (Chat + midia binaria)",
+  "nodes": [
+    {
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "toolName": "consultar_info_hotel",
+        "toolDescription": "Consulta la base de conocimiento del hotel. Usala para info general: wifi y contrasena, horarios de check-in/check-out, desayuno, politica de mascotas, cancelacion, fumadores, formas de pago, estacionamiento, pileta, comodidades, ubicacion, distancias y excursiones. NO la uses para disponibilidad ni precios de fechas concretas.",
+        "tableName": {
+          "__rl": true,
+          "value": "documents_hotel",
+          "mode": "list",
+          "cachedResultName": "documents_hotel"
+        },
+        "options": {
+          "queryName": "match_documents_hotel"
+        }
+      },
+      "id": "ede8b4ce-6f33-4c4e-8d8c-ac482a209dbe",
+      "name": "RAG Info Hotel (Tool)",
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+      "typeVersion": 1,
+      "position": [
+        29904,
+        9136
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "67q0sf6a4UxFBzAa",
+          "name": "Supabase account Hoteleiro"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "id": "ab7de934-babc-429f-ba49-ae84fc37cb7d",
+      "name": "Embeddings Gemini",
+      "type": "@n8n/n8n-nodes-langchain.embeddingsGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        29904,
+        9344
+      ],
+      "credentials": {
+        "googlePalmApi": {
+          "id": "rA7jQsJ3fxK4xBgR",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "toolDescription": "Consulta la disponibilidad real de habitaciones para fechas concretas y devuelve el precio. Parametros: tipo (individual, doble_estandar, doble_superior, familiar, suite - o vacio para ver TODOS los tipos), entrada (YYYY-MM-DD), salida (YYYY-MM-DD). Devuelve cuantas hay disponibles, capacidad, tarifa por noche y precio total de la estadia.",
+        "method": "POST",
+        "url": "=https://REPLACE_PROJECT_REF.supabase.co/rest/v1/rpc/consultar_disponibilidad",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "p_tipo",
+              "value": "={{ $fromAI('tipo', 'Codigo del tipo de habitacion: individual, doble_estandar, doble_superior, familiar o suite. Vacio para ver todos', 'string') }}"
+            },
+            {
+              "name": "p_entrada",
+              "value": "={{ $fromAI('entrada', 'Fecha de entrada en formato YYYY-MM-DD', 'string') }}"
+            },
+            {
+              "name": "p_salida",
+              "value": "={{ $fromAI('salida', 'Fecha de salida en formato YYYY-MM-DD', 'string') }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "5efa0e8c-5e63-4fc5-bb8f-b9bb64389ad0",
+      "name": "consultar_disponibilidad (Tool)",
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.2,
+      "position": [
+        30176,
+        9136
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "67q0sf6a4UxFBzAa",
+          "name": "Supabase account Hoteleiro"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "toolDescription": "Toma una reserva provisoria (hold) de forma segura. Verifica disponibilidad y reserva en una sola operacion. Parametros: tipo (individual, doble_estandar, doble_superior, familiar, suite), nombre del huesped, contacto, entrada (YYYY-MM-DD), salida (YYYY-MM-DD), personas (numero). Devuelve ok=true con codigo de reserva, monto total y sena; o ok=false con el motivo (por ejemplo sin_disponibilidad o capacidad_excedida).",
+        "method": "POST",
+        "url": "=https://REPLACE_PROJECT_REF.supabase.co/rest/v1/rpc/crear_reserva",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "p_tipo",
+              "value": "={{ $fromAI('tipo', 'Codigo del tipo de habitacion: individual, doble_estandar, doble_superior, familiar o suite', 'string') }}"
+            },
+            {
+              "name": "p_nombre",
+              "value": "={{ $fromAI('nombre', 'Nombre completo del huesped', 'string') }}"
+            },
+            {
+              "name": "p_contacto",
+              "value": "={{ $fromAI('contacto', 'Telefono o email de contacto del huesped', 'string') }}"
+            },
+            {
+              "name": "p_entrada",
+              "value": "={{ $fromAI('entrada', 'Fecha de entrada en formato YYYY-MM-DD', 'string') }}"
+            },
+            {
+              "name": "p_salida",
+              "value": "={{ $fromAI('salida', 'Fecha de salida en formato YYYY-MM-DD', 'string') }}"
+            },
+            {
+              "name": "p_personas",
+              "value": "={{ $fromAI('personas', 'Cantidad total de personas', 'number') }}"
+            },
+            {
+              "name": "p_cantidad",
+              "value": "={{ $fromAI('cantidad', 'Cantidad de habitaciones del mismo tipo', 'number') }}"
+            },
+            {
+              "name": "p_session_id",
+              "value": "={{ $('Normalizar Entrada1').item.json.session_id }}"
+            },
+            {
+              "name": "p_channel",
+              "value": "={{ $('Normalizar Entrada1').item.json.channel }}"
+            },
+            {
+              "name": "p_minutos_hold",
+              "value": "5"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "b888c9f2-ffea-47a4-bbe0-6a7da8080db4",
+      "name": "crear_reserva (Tool)",
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.2,
+      "position": [
+        30352,
+        9136
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "67q0sf6a4UxFBzAa",
+          "name": "Supabase account Hoteleiro"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "### CONFIGURAR ANTES DE USAR\n\n**1. Base de datos (Supabase)**\nCorre los SQL en orden:\n`sql/01_schema.sql` -> `sql/02_functions.sql` -> `sql/03_seed_demo.sql`\n\n**2. Credenciales en n8n**\n- Supabase API (usa la service_role key)\n- Google Gemini (PaLM) API\n\n**3. En los nodos `consultar_disponibilidad`, `crear_reserva` y `registrar_comprobante`**\n- Reemplaza `REPLACE_PROJECT_REF` en la URL por la ref de tu proyecto Supabase (la parte antes de `.supabase.co`).\n- Selecciona tu credencial de Supabase. Los nodos ya usan Predefined Credential Type: no hay claves en texto plano en ningun campo.\n\nSon nodos HTTP porque llaman funciones RPC de Postgres, no tablas.",
+        "height": 260,
+        "width": 340,
+        "color": 6
+      },
+      "id": "910d5ce2-8b94-46e9-a6bb-3a2061a47272",
+      "name": "Nota Config",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        30144,
+        9376
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## AGENTE DE ATENCION — HOTEL SIERRA DEL LAGO (v8)\n\n**Herramientas del agente**\n- `consultar_info_hotel` — RAG sobre `documents_hotel`\n- `consultar_disponibilidad` — calculada por solapamiento de fechas, nunca un contador\n- `crear_reserva` — atomica: verifica y reserva en un solo bloque, con FOR UPDATE\n- `registrar_comprobante` — retiene la reserva, NO confirma el pago\n- `escalar_a_humano` — puerta de salida\n\n**Reglas que no se negocian**\n- El precio se calcula en SQL, nunca por el LLM.\n- El agente nunca confirma un pago: recibe y retiene. Confirma una persona del hotel con `confirmar_reserva`, que no es tool del agente.\n- Fecha/hora GMT-3 inyectada en el prompt en cada ejecucion.\n\n**Desacople de origen**\n`Normalizar Entrada` estandariza los datos apenas entran. Para pasar a WhatsApp se reemplaza el Chat Trigger por un Webhook y se ajusta el mapeo DENTRO de ese nodo. El resto del flujo no cambia.\n\n**Prueba rapida:** pedi 2 suites para las mismas fechas y despues una tercera. El hotel tiene solo 2.",
+        "height": 420,
+        "width": 420,
+        "color": 4
+      },
+      "id": "2238b2eb-6658-456d-8df5-7c8e8dbf1458",
+      "name": "Nota Arquitetura1",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        29712,
+        8256
+      ]
+    },
+    {
+      "parameters": {
+        "content": "### CAPA DE NORMALIZACION\n\nDesacopla la fuente del resto del flujo.\n\nPara Green API (WhatsApp), cambiar solo aca:\n- session_id  <- senderData.chatId\n- user_name   <- senderData.senderName\n- user_message <- messageData.textMessageData.textMessage\n- channel     <- 'whatsapp'\n- message_id  <- idMessage (idempotencia)",
+        "height": 280,
+        "width": 340,
+        "color": 3
+      },
+      "id": "fcb8058d-c01a-451e-b916-010324d7064e",
+      "name": "Nota Normalizacao1",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        30240,
+        8304
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "n-session",
+              "name": "session_id",
+              "type": "string",
+              "value": "={{ $json.sessionId || 'chat-demo' }}"
+            },
+            {
+              "id": "n-name",
+              "name": "user_name",
+              "type": "string",
+              "value": "Huesped"
+            },
+            {
+              "id": "n-msg",
+              "name": "user_message",
+              "type": "string",
+              "value": "={{ $json.contenido_procesado || $json.chatInput || '' }}"
+            },
+            {
+              "id": "n-channel",
+              "name": "channel",
+              "type": "string",
+              "value": "chat"
+            },
+            {
+              "id": "n-msgid",
+              "name": "message_id",
+              "type": "string",
+              "value": "={{ $now.toMillis().toString() }}"
+            },
+            {
+              "id": "n-tipo",
+              "name": "tipo_mensaje",
+              "type": "string",
+              "value": "={{ $json.tipo_mensaje || 'texto' }}"
+            },
+            {
+              "id": "n-fecha",
+              "name": "fecha_hoy",
+              "type": "string",
+              "value": "={{ $now.setZone('America/Argentina/Cordoba').toFormat('yyyy-MM-dd') }}"
+            },
+            {
+              "id": "n-fechatxt",
+              "name": "fecha_hoy_texto",
+              "type": "string",
+              "value": "={{ $now.setZone('America/Argentina/Cordoba').setLocale('es').toFormat(\"cccc d 'de' LLLL 'de' yyyy, HH:mm\") }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "865052af-1d8f-43ac-9636-ccb13c3bf6d1",
+      "name": "Normalizar Entrada1",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        29472,
+        8944
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.user_message }}",
+        "options": {
+          "systemMessage": "=Sos el asistente virtual del Hotel Sierra del Lago, un hotel familiar de tres estrellas en Villa Carlos Paz, Córdoba, Argentina. Atendés huéspedes por chat.\n\nCONTEXTO TEMPORAL:\nHoy es {{ $json.fecha_hoy_texto }}. Fecha ISO: {{ $json.fecha_hoy }}.\nUsala siempre para interpretar \"mañana\", \"este fin de semana\", \"la semana que viene\". Nunca preguntes qué día es hoy.\n\nTUS HERRAMIENTAS:\n1. consultar_info_hotel — info general: wifi, horarios, desayuno, políticas, mascotas, pagos, estacionamiento, pileta, ubicación, excursiones, datos de transferencia.\n2. consultar_disponibilidad — disponibilidad real y precio para fechas concretas.\n3. crear_reserva — toma la reserva. Requiere: tipo, nombre, fechas, personas y CANTIDAD de habitaciones.\n5. retener_con_saldo — retiene una reserva usando el saldo que el huesped YA reporto en esta conversacion, sin pedirle otra transferencia. La cuenta la hace la herramienta sobre la tabla de pagos. Requiere solo el codigo de la reserva.\n\n4. escalar_a_humano — usala si el huésped pide explícitamente hablar con una persona, si está claramente molesto, o si DISCUTE MONTOS YA PAGADOS (ver DISCUSIONES SOBRE DINERO). Para preguntas normales sobre el hotel, habitaciones, precios o disponibilidad NO escales: esas las resolvés vos.\n5. registrar_comprobante — retiene la reserva para que deje de expirar cuando el huesped manda un comprobante valido. Requiere el codigo de reserva y los datos extraidos del comprobante. NO confirma el pago: solo frena el vencimiento hasta que una persona del hotel verifique.\n\nREGLAS DE ORO:\n- NUNCA anuncies que vas a hacer algo: hacelo. Prohibido responder \"un momento\", \"dejame consultar\", \"ya te digo\", \"voy a verificar\" o similares. Usa las herramientas PRIMERO y responde recien con el resultado completo. Tu respuesta es la unica que el huesped va a recibir: no hay una segunda mensaje despues.\n\n- Nunca inventes datos. Si no está en tus herramientas, decilo.\n- NUNCA agregues campos que tus herramientas no devolvieron. Los DATOS DE TRANSFERENCIA son exactamente cinco y salen de consultar_info_hotel: titular, CUIT, banco, CBU y alias. Copialos textualmente. Si no los consultaste en esta conversacion, consultalos antes de pasarlos. Esta prohibido deducir o completar el nombre del banco, el CUIT o cualquier otro dato de memoria.\n- Nunca calcules precios vos. El precio viene de las herramientas. Repetilo tal cual.\n- Al informar precios, SIEMPRE discriminá: precio por habitación y monto total. Ejemplo: \"Cada suite sale $240.000 por las 2 noches. Como son 2 suites, el total es $480.000.\"\n- Nunca confirmes una reserva como cerrada. Vos tomás una reserva provisoria que se confirma con la seña.\n- Si crear_reserva devuelve sin_disponibilidad, avisá con empatía y OFRECÉ ALTERNATIVAS: consultá otros tipos para las mismas fechas y proponelos con precio.\n\nFLUJO DE RESERVA (seguilo en orden):\n1. El huésped pregunta por fechas → usá consultar_disponibilidad.\n2. Informá qué hay, capacidad y precio (discriminado).\n3. Si quiere avanzar, pedile: nombre completo, cantidad de personas, cantidad de habitaciones y un teléfono o email de contacto.\n4. Usá crear_reserva con todos esos datos.\n5. Si sale bien, informá en este orden:\n   - Código de reserva\n   - Detalle: tipo, cantidad de habitaciones, fechas, noches\n   - Precio por habitación y MONTO TOTAL\n   - MONTO DE LA SEÑA (30%) que debe transferir ahora\n   - Los DATOS DE TRANSFERENCIA. ANTES de pasarlos, llama a consultar_info_hotel buscando \"datos para la transferencia de la sena\" y copia lo que devuelva, campo por campo. Si la herramienta NO devuelve alguno de los campos (por ejemplo el nombre del banco), simplemente NO lo menciones: el CBU y el alias alcanzan para transferir. Es preferible omitir un dato a inventarlo. Nunca los escribas de memoria ni los repitas de un mensaje anterior sin volver a consultarlos.\n   - Que tiene X minutos para transferir y enviar el comprobante por este chat\n   - Que el saldo se abona en el check-in\n6. Cuando el huesped diga que transfirio, pedile el comprobante por este chat. Cuando llegue, segui el PROTOCOLO DE COMPROBANTE.\n\nMENSAJES QUE NO SON TEXTO:\nEl huesped puede enviarte audios, imagenes o PDFs. Vos siempre los recibis ya convertidos a texto, con una etiqueta al inicio que te dice de que se trata. Respondé con naturalidad, sin mencionar el procesamiento tecnico.\n\n- Si recibis \"[El huesped envio un audio. Transcripcion:] ...\" -> tratalo como si te lo hubiera escrito.\n- Si recibis \"[El huesped envio un audio que no se pudo entender.]\" -> pedile con amabilidad que lo repita o que te escriba.\n- Si recibis \"[El huesped envio un COMPROBANTE DE TRANSFERENCIA. Datos extraidos:]\" -> segui el PROTOCOLO DE COMPROBANTE de abajo.\n- Si recibis \"[El huesped envio una imagen que NO es un comprobante de pago.]\" -> si esta esperando pagar, avisale amablemente que ese archivo no parece un comprobante de transferencia y pedile el correcto. Si no esta en proceso de pago, comenta con naturalidad y volve al tema.\n- Si recibis \"[El huesped envio una imagen ILEGIBLE o borrosa.]\" -> pedile que la reenvie con mejor calidad.\n- Si recibis \"[El huesped envio un documento PDF. Contenido extraido:]\" -> leelo. Si es un comprobante, segui el PROTOCOLO. Si no tiene nada que ver, decile que no es lo que necesitas.\n- Si recibis \"[FORMATO_NO_SOPORTADO]\" -> decile que por ahora solo podes procesar texto, audios, imagenes y PDFs, y pedile que reenvie de otra forma.\n\nPROTOCOLO DE COMPROBANTE (importante):\nCuando recibas un comprobante, verifica estos tres puntos contra la reserva que tomaste:\n1. El CBU o alias de DESTINO es el del hotel (CBU 0070123430004567890123, alias sierra.del.lago.hotel)?\n2. El MONTO coincide con la sena que pediste?\n3. La FECHA es de hoy o muy reciente?\n\nREGLA DE DECISION — en este orden:\n\n- Si el DESTINO NO es del hotel -> NO llames a registrar_comprobante. Avisale con claridad que la transferencia fue a otra cuenta y pasale de nuevo los datos correctos del hotel.\n\n- Si el DESTINO ES del hotel -> llama a registrar_comprobante PRIMERO, con el codigo de reserva y todos los datos que extrajiste. Esto retiene la habitacion. Recien despues respondele, segun lo que devuelva la herramienta:\n   * ok=true y coincide_monto=true -> agradecele, deci que RECIBISTE el comprobante, que la habitacion ya quedo retenida a su nombre y que el equipo del hotel verifica el ingreso y le confirma a la brevedad. Si el monto transferido es MAYOR que la sena, avisale del excedente y deci que se descuenta del saldo que abona en el check-in.\n   * ok=true y coincide_monto=false -> deci que recibiste el comprobante y que la habitacion quedo retenida, pero senalale la diferencia con el monto de la sena y pedile que la complete. Ejemplo: \"Recibi el comprobante y ya te guarde la habitacion. Vi que transferiste $50.000 y la sena es de $144.000: podes completar la diferencia?\"\n   * ok=true y duplicado=true -> ese comprobante YA lo tenias registrado antes: no lo trates como uno nuevo ni digas que lo registraste. Deci que ya lo tenias y que la reserva sigue retenida. Si todavia falta plata para llegar a la sena, recordale la diferencia.\n   * ok=false y motivo=hold_expirado -> pedile disculpas, explicale que la reserva provisoria vencio, verifica disponibilidad de nuevo con consultar_disponibilidad y volve a tomar la reserva.\n   * ok=false y motivo=reserva_no_encontrada -> pedile que confirme el codigo de reserva.\n   * ok=false y motivo=comprobante_ya_usado -> ese numero de operacion ya fue registrado en OTRA reserva, y la habitacion NO quedo retenida. Decilo con claridad y sin acusar: pedile que revise si envio el comprobante correcto. Si insiste en que es correcto, usa escalar_a_humano.\n   * ok=false y motivo=comprobante_ilegible -> el comprobante no trae numero de operacion legible. Pedile que lo reenvie completo con el numero de operacion visible, o que mande el PDF que le da el banco en vez de una foto. La habitacion NO quedo retenida: avisale que el tiempo del hold sigue corriendo.\n   * ok=false y motivo=reserva_no_vigente -> esa reserva fue cancelada o expiro. Verifica disponibilidad de nuevo y tomá una reserva nueva antes de registrar el pago.\n   * ok=true y motivo=ya_confirmada -> la reserva ya estaba confirmada por el hotel. Decilo y no pidas nada mas.\n\n- Si no podes leer el NUMERO DE OPERACION, el MONTO o el CBU/alias de destino -> no llames a la herramienta. Pedile que reenvie el comprobante completo, con el numero de operacion visible. Sugerile mandar el PDF que descarga del homebanking: se lee mejor que una foto de la pantalla.\n\nNUNCA digas que la reserva esta confirmada o pagada. Vos solo recibis y retenes: la verificacion final la hace una persona del hotel.\n\nDISCUSIONES SOBRE DINERO (regla dura):\nVos NO llevás la contabilidad y NO ves la cuenta bancaria. Nunca sumes, restes ni compares montos vos mismo, ni reconstruyas de memoria a qué reserva fue cada transferencia. Para eso están las herramientas.\n\nSi el huésped dice que lo que ya transfirió alcanza también para esta reserva:\n1. NO discutas ni le des la razón de palabra. Tampoco se la niegues.\n2. Llamá a retener_con_saldo con el código de esa reserva. La cuenta la hace la base de datos, no vos.\n3. Respondé según lo que devuelva:\n   * ok=true y motivo=retenida_con_saldo -> confirmale que revisaste lo ya reportado, que alcanza, y que la habitación quedó retenida sin necesidad de otra transferencia. Mencioná el saldo_restante si es mayor a cero. Aclará que el equipo del hotel igual verifica los ingresos.\n   * ok=true y motivo=ya_retenida -> esa reserva ya estaba retenida, no hace falta nada más.\n   * ok=false y motivo=saldo_insuficiente -> decile con números exactos cuánto hay disponible y cuánto falta, usando los campos saldo_disponible y falta. Pedile la diferencia. No redondees ni estimes: usá los números que devolvió la herramienta.\n   * ok=false por cualquier otro motivo -> usá escalar_a_humano.\n4. Si después de esto el huésped sigue en desacuerdo con los montos, usá escalar_a_humano. No insistas ni negocies.\n\nUn excedente NUNCA cubre la reserva de otra persona: retener_con_saldo solo mira lo reportado en esta misma conversación.\nY nunca digas que un pago está confirmado o acreditado: eso lo determina el hotel.\n\nTONO: cálido, argentino (usá \"vos\" con naturalidad), breve y claro. No abrumes: respondé lo que preguntan."
+        }
+      },
+      "id": "4fd7da07-32a9-4aaa-8328-c60dc4399a49",
+      "name": "AI Agent1",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        29840,
+        8880
+      ]
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.5-flash-lite",
+        "options": {}
+      },
+      "id": "868fe43f-beaa-4983-9370-ae6b5804c0c0",
+      "name": "Gemini Chat Model1",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        29600,
+        9136
+      ],
+      "credentials": {
+        "googlePalmApi": {
+          "id": "rA7jQsJ3fxK4xBgR",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $json.session_id }}",
+        "contextWindowLength": 15
+      },
+      "id": "ccea339b-7ff2-48ca-8d43-0f3e92a56406",
+      "name": "Memoria Conversa1",
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        29744,
+        9136
+      ]
+    },
+    {
+      "parameters": {
+        "options": {
+          "allowFileUploads": true
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        28208,
+        9184
+      ],
+      "id": "60148225-ee6e-4ac7-89b7-73104520221d",
+      "name": "When chat message received",
+      "webhookId": "2e99bdf9-1560-4dc9-bb2a-f29a77b7aa3d"
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Escala la conversacion a un atendente humano del hotel. Usala SOLO si el huesped pide explicitamente hablar con una persona, o si esta claramente molesto o frustrado. NUNCA la uses para preguntas normales sobre el hotel, habitaciones, precios, disponibilidad o pagos: esas las resolves vos con tus otras herramientas. Ante la duda, NO escales.",
+        "tableId": "escalaciones",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "session_id",
+              "fieldValue": "=={{ $('Normalizar Entrada1').item.json.session_id }}"
+            },
+            {
+              "fieldId": "channel",
+              "fieldValue": "=={{ $('Normalizar Entrada1').item.json.channel }}"
+            },
+            {
+              "fieldId": "huesped_nombre",
+              "fieldValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fieldValues2_Field_Value', `Nombre del huesped si lo sabe`, 'string') }}"
+            },
+            {
+              "fieldId": "motivo",
+              "fieldValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fieldValues3_Field_Value', `Motivo breve de la escalacion`, 'string') }}"
+            },
+            {
+              "fieldId": "resumen",
+              "fieldValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fieldValues4_Field_Value', `Resumen de lo que necesita el huesped`, 'string') }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "position": [
+        30528,
+        9136
+      ],
+      "id": "5f5492de-c020-4bf6-8f25-f89cd071491f",
+      "name": "escalar_a_humano",
+      "credentials": {
+        "supabaseApi": {
+          "id": "67q0sf6a4UxFBzAa",
+          "name": "Supabase account Hoteleiro"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "combinator": "or",
+                "conditions": [
+                  {
+                    "id": "a1",
+                    "leftValue": "={{ $binary?.data0?.mimeType || '' }}",
+                    "rightValue": "audio",
+                    "operator": {
+                      "type": "string",
+                      "operation": "contains",
+                      "singleValue": false
+                    }
+                  },
+                  {
+                    "id": "a2",
+                    "leftValue": "={{ $json.body.entry[0].changes[0].value.messages[0].type || '' }}",
+                    "rightValue": "audio",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "singleValue": false
+                    }
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "audio"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "combinator": "or",
+                "conditions": [
+                  {
+                    "id": "i1",
+                    "leftValue": "={{ $binary?.data0?.mimeType || '' }}",
+                    "rightValue": "image",
+                    "operator": {
+                      "type": "string",
+                      "operation": "contains",
+                      "singleValue": false
+                    }
+                  },
+                  {
+                    "id": "i2",
+                    "leftValue": "={{ $json.body.entry[0].changes[0].value.messages[0].type || '' }}",
+                    "rightValue": "image",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "singleValue": false
+                    }
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "imagen"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "combinator": "or",
+                "conditions": [
+                  {
+                    "id": "p1",
+                    "leftValue": "={{ $binary?.data0?.mimeType || '' }}",
+                    "rightValue": "pdf",
+                    "operator": {
+                      "type": "string",
+                      "operation": "contains",
+                      "singleValue": false
+                    }
+                  },
+                  {
+                    "id": "p2",
+                    "leftValue": "={{ $json.body.entry[0].changes[0].value.messages[0].type || '' }}",
+                    "rightValue": "document",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "singleValue": false
+                    }
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "pdf"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "combinator": "or",
+                "conditions": [
+                  {
+                    "id": "t1",
+                    "leftValue": "={{ $json.chatInput || '' }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "notEmpty",
+                      "singleValue": true
+                    }
+                  },
+                  {
+                    "id": "t2",
+                    "leftValue": "={{ $json.body.entry[0].changes[0].value.messages[0].type || '' }}",
+                    "rightValue": "text",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "singleValue": false
+                    }
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "texto"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra",
+          "renameFallbackOutput": "no_soportado"
+        }
+      },
+      "id": "dffad63c-8f1a-4357-aed4-98cabd32a9ac",
+      "name": "Detectar Tipo Mensaje",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        28592,
+        8944
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "pdf",
+        "binaryPropertyName": "={{ $binary.data0 ? 'data0' : 'data' }}",
+        "options": {}
+      },
+      "id": "2ec2c3a5-52ab-48fb-9d50-7346fa7fdbab",
+      "name": "Extraer Texto PDF",
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        28816,
+        8896
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Consolidar Contenido — v8\n// Unifica texto / audio / imagen / PDF en UNA string antes del agente.\n// El ramo Meta vive ahora en un workflow separado (parked), asi que el\n// origen siempre es el chat trigger.\n// Lee la salida de IA en CUALQUIER formato: node nativo Google Gemini\n// (json.content.parts[0].text o json.content string) o HTTP Request\n// (json.candidates[0].content.parts[0].text). Nunca devuelve\n// contenido_procesado vacio.\n\nconst item = $input.first().json;\nconst origen = $('When chat message received').first().json;\nconst leyenda = (origen.chatInput || '').trim();\n\nconst salidaIA =\n     item?.content?.parts?.[0]?.text\n  ?? item?.candidates?.[0]?.content?.parts?.[0]?.text\n  ?? (typeof item?.content === 'string' ? item.content : undefined);\n\nlet tipo = 'texto';\nlet contenido = '';\n\nif (typeof salidaIA === 'string' && salidaIA.trim() !== '') {\n  const s = salidaIA.trim();\n\n  if (s.startsWith('[COMPROBANTE]')) {\n    tipo = 'imagen';\n    contenido = '[El huesped envio un COMPROBANTE DE TRANSFERENCIA. Datos extraidos:]\\n'\n              + s.replace('[COMPROBANTE]', '').trim();\n\n  } else if (s.startsWith('[NO_ES_COMPROBANTE]')) {\n    tipo = 'imagen';\n    contenido = '[El huesped envio una imagen que NO es un comprobante de pago.]\\n'\n              + s.replace('[NO_ES_COMPROBANTE]', '').trim();\n\n  } else if (s.startsWith('[ILEGIBLE]')) {\n    tipo = 'imagen';\n    contenido = '[El huesped envio una imagen ILEGIBLE o borrosa.]';\n\n  } else if (s.includes('[AUDIO_INAUDIBLE]')) {\n    tipo = 'audio';\n    contenido = '[El huesped envio un audio que no se pudo entender.]';\n\n  } else {\n    tipo = 'audio';\n    contenido = '[El huesped envio un audio. Transcripcion:] ' + s;\n  }\n\n} else if (typeof item?.text === 'string' && item.text.trim() !== '') {\n  tipo = 'pdf';\n  contenido = '[El huesped envio un documento PDF. Contenido extraido:]\\n'\n            + item.text.trim().slice(0, 4000);\n\n} else if (item?.contenido_procesado === '[FORMATO_NO_SOPORTADO]') {\n  tipo = 'no_soportado';\n  contenido = '[FORMATO_NO_SOPORTADO]';\n\n} else {\n  tipo = 'texto';\n  contenido = leyenda;\n}\n\nif (tipo !== 'texto' && tipo !== 'no_soportado' && leyenda) {\n  contenido += '\\n\\n[Mensaje que acompanaba el archivo:] ' + leyenda;\n}\n\nif (!contenido || contenido.trim() === '') {\n  contenido = leyenda || '[El huesped envio un mensaje que no se pudo procesar.]';\n}\n\nreturn [{ json: { ...origen, tipo_mensaje: tipo, contenido_procesado: contenido } }];"
+      },
+      "id": "b06ed240-0729-462d-af5a-2f37c5120110",
+      "name": "Consolidar Contenido",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        29248,
+        8944
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ns-1",
+              "name": "tipo_mensaje",
+              "value": "no_soportado",
+              "type": "string"
+            },
+            {
+              "id": "ns-2",
+              "name": "contenido_procesado",
+              "value": "[FORMATO_NO_SOPORTADO]",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "cea50063-ef0f-4b8f-b2a8-d26dbf964402",
+      "name": "Formato No Soportado",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        28832,
+        9088
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## CAPA MULTIMODAL\n\nDetecta el tipo de mensaje y lo convierte TODO a texto antes del agente.\n\n- **Audio** -> nodo nativo Google Gemini (transcribe)\n- **Imagen** -> nodo nativo Google Gemini (analyze). Si es comprobante, extrae monto, fecha, CBU/alias de destino y nro de operacion.\n- **PDF** -> Extract from File (nativo, sin IA)\n- **Otro** -> mensaje de formato no soportado\n\n`Consolidar Contenido` unifica todo en una sola string con una etiqueta al inicio, y lee la salida de IA en cualquier formato (nodo nativo o HTTP). El agente recibe solo `user_message`: no sabe de que tipo vino.\n\nTodos los nodos de IA tienen `onError=continue`: si falla, el flujo sigue y el agente avisa.",
+        "height": 320,
+        "width": 380,
+        "color": 7
+      },
+      "id": "89f6f092-9fc1-4b02-9d17-7bb53e975642",
+      "name": "Nota Multimodal",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        28624,
+        8112
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ $json.output }}",
+        "options": {}
+      },
+      "id": "dca483ec-faec-4af0-8f58-4fcff76fccb6",
+      "name": "Responder al Chat",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        30464,
+        8832
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "image",
+        "operation": "analyze",
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-3.5-flash-lite",
+          "mode": "list",
+          "cachedResultName": "models/gemini-3.5-flash-lite"
+        },
+        "text": "Analiza esta imagen. Contexto: atencion de un hotel. El huesped puede estar enviando un COMPROBANTE DE TRANSFERENCIA para la sena de una reserva.\n\nSi ES un comprobante de pago, devolve exactamente:\n[COMPROBANTE]\nmonto: <solo numeros>\nfecha: <fecha de la operacion>\ndestino_cbu_alias: <CBU o alias de destino>\ntitular_destino: <nombre del titular>\nnro_operacion: <numero de operacion>\nbanco: <banco emisor>\n\nSi NO es un comprobante, devolve:\n[NO_ES_COMPROBANTE]\ndescripcion: <que muestra la imagen>\n\nSi esta borrosa o ilegible, devolve:\n[ILEGIBLE]",
+        "inputType": "binary",
+        "binaryPropertyName": "={{ $json.files[0].binaryKey }}",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1.2,
+      "position": [
+        28832,
+        8736
+      ],
+      "id": "a3a90fdd-ff9b-476c-9227-469432a30da4",
+      "name": "Analyze an image",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "rA7jQsJ3fxK4xBgR",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "audio",
+        "modelId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "models/gemini-3.5-flash-lite",
+          "cachedResultName": "models/gemini-3.5-flash-lite"
+        },
+        "inputType": "binary",
+        "binaryPropertyName": "={{ $json.files[0].binaryKey }}",
+        "options": {}
+      },
+      "id": "b3001fe6-038b-47d4-9c51-abef2c7ffc38",
+      "name": "Transcribir Audio (Gemini)",
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1.2,
+      "position": [
+        28816,
+        8496
+      ],
+      "credentials": {
+        "googlePalmApi": {
+          "id": "rA7jQsJ3fxK4xBgR",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "toolDescription": "Registra el comprobante de transferencia que envio el huesped y RETIENE la reserva para que deje de expirar hasta la verificacion del hotel. NO confirma el pago. Usala apenas cuando el CBU o alias de destino sea el del hotel. Parametros: codigo de reserva, monto, nro_operacion, banco, titular_destino, cbu_destino, fecha_operacion.",
+        "method": "POST",
+        "url": "=https://REPLACE_PROJECT_REF.supabase.co/rest/v1/rpc/registrar_comprobante",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "p_codigo",
+              "value": "={{ $fromAI('codigo', 'Codigo de la reserva, formato SDL-XXXXXX', 'string') }}"
+            },
+            {
+              "name": "p_monto",
+              "value": "={{ $fromAI('monto', 'Monto transferido, solo numeros, sin puntos ni simbolos', 'number') }}"
+            },
+            {
+              "name": "p_nro_operacion",
+              "value": "={{ $fromAI('nro_operacion', 'Numero de operacion del comprobante', 'string') }}"
+            },
+            {
+              "name": "p_banco",
+              "value": "={{ $fromAI('banco', 'Banco emisor de la transferencia', 'string') }}"
+            },
+            {
+              "name": "p_titular_destino",
+              "value": "={{ $fromAI('titular_destino', 'Nombre del titular de la cuenta de destino', 'string') }}"
+            },
+            {
+              "name": "p_cbu_destino",
+              "value": "={{ $fromAI('cbu_destino', 'CBU o alias de destino que figura en el comprobante', 'string') }}"
+            },
+            {
+              "name": "p_fecha_operacion",
+              "value": "={{ $fromAI('fecha_operacion', 'Fecha de la operacion tal como figura en el comprobante', 'string') }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "68fc4f86-70db-40d8-bb51-2094a8b96f6c",
+      "name": "registrar_comprobante (Tool)",
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.2,
+      "position": [
+        30720,
+        9136
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "67q0sf6a4UxFBzAa",
+          "name": "Supabase account Hoteleiro"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "toolDescription": "Retiene una reserva usando el saldo que el huesped YA reporto en esta conversacion, sin pedirle otra transferencia. Usala cuando el huesped afirme que lo que ya transfirio cubre tambien esta reserva. La funcion hace la cuenta sobre la tabla de pagos: vos no sumas nada. Devuelve ok=true si el saldo alcanza, o saldo_insuficiente con cuanto falta. No confirma el pago: solo frena el vencimiento hasta la verificacion humana. Parametro: codigo de la reserva.",
+        "method": "POST",
+        "url": "=https://REPLACE_PROJECT_REF.supabase.co/rest/v1/rpc/retener_con_saldo",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "p_codigo",
+              "value": "={{ $fromAI('codigo', 'Codigo de la reserva que se quiere retener, formato SDL-XXXXXX', 'string') }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "b7c31f80-4a19-4d62-9e10-5f2a8c441d33",
+      "name": "retener_con_saldo (Tool)",
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.2,
+      "position": [
+        30720,
+        9316
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "67q0sf6a4UxFBzAa",
+          "name": "Supabase account Hoteleiro"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "RAG Info Hotel (Tool)": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings Gemini": {
+      "ai_embedding": [
+        [
+          {
+            "node": "RAG Info Hotel (Tool)",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "consultar_disponibilidad (Tool)": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "crear_reserva (Tool)": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalizar Entrada1": {
+      "main": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Memoria Conversa1": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "Detectar Tipo Mensaje",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "escalar_a_humano": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Detectar Tipo Mensaje": {
+      "main": [
+        [
+          {
+            "node": "Transcribir Audio (Gemini)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Analyze an image",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Extraer Texto PDF",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Consolidar Contenido",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Formato No Soportado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extraer Texto PDF": {
+      "main": [
+        [
+          {
+            "node": "Consolidar Contenido",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formato No Soportado": {
+      "main": [
+        [
+          {
+            "node": "Consolidar Contenido",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Consolidar Contenido": {
+      "main": [
+        [
+          {
+            "node": "Normalizar Entrada1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analyze an image": {
+      "main": [
+        [
+          {
+            "node": "Consolidar Contenido",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Transcribir Audio (Gemini)": {
+      "main": [
+        [
+          {
+            "node": "Consolidar Contenido",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent1": {
+      "main": [
+        [
+          {
+            "node": "Responder al Chat",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "registrar_comprobante (Tool)": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "retener_con_saldo (Tool)": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": true
+  },
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "nodeGroups": [],
+  "tags": []
+}

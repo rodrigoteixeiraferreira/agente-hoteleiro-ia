@@ -1,0 +1,13 @@
+# Notas de trabajo y estado interno (viven fuera de este repo)
+CLAUDE.md
+ESTADO.md
+export/
+
+# Secretos
+.env
+*.local.*
+*credentials*.json
+
+# Sistema
+.DS_Store
+Thumbs.db

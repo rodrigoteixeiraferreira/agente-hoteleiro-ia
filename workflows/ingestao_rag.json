@@ -1,0 +1,196 @@
+{
+  "name": "Hotel VCP - 1 Ingestao RAG",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "e6f10f02-78ea-43eb-94f7-f40efc0772af",
+      "name": "Iniciar Ingestao (Manual)",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        384
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## INGESTA DEL RAG DEL HOTEL\n\nCarga la base de conocimiento del hotel en Supabase. Se corre UNA vez.\n\n**Antes de correr:**\n1. Ejecuta `sql/01_schema.sql` (crea `documents_hotel` y `match_documents_hotel`).\n2. Configura las credenciales de Google Gemini y Supabase.\n\n**Que hace:**\nToma el texto del nodo `Conteudo do Hotel` -> lo divide en chunks -> genera embeddings con Gemini -> inserta en `documents_hotel`.\n\n**Ojo con la dimension:** la columna `embedding` es `vector(3072)`. Todos los modelos de embedding de Gemini disponibles hoy generan 3072. Si cambias de modelo y la dimension no coincide, el insert falla sin un error obvio.\n\n**Valida con:** `select count(*) from documents_hotel;`\n\nPara adaptarlo a otro hotel, edita el texto dentro de `Conteudo do Hotel`.",
+        "height": 320,
+        "width": 380,
+        "color": 5
+      },
+      "id": "f2a10912-314f-4e72-b727-0891efa55655",
+      "name": "Nota Explicativa",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Conteudo do Hotel Sierra del Lago (VCP) - versao 2\n// Atualizado: pagamento por transferencia com dados reais + agente toma a reserva\n\nconst conteudoHotel = `Hotel Sierra del Lago - Villa Carlos Paz. Hotel familiar de tres estrellas ubicado en Villa Carlos Paz, Cordoba, a 400 metros de la costanera del Lago San Roque y a 10 minutos a pie del centro. Direccion: Avenida del Lago 1250. Funciona todo el ano. Check-in desde las 14:00 hs. Check-out hasta las 10:00 hs. Late check-out segun disponibilidad con costo adicional del 50%.\n\nWifi: la red se llama SierraDelLago_Huespedes y la contrasena es lago2026. Es gratuito y esta en todas las habitaciones y areas comunes.\n\nDesayuno incluido en todas las tarifas, buffet, de 7:30 a 10:30 hs, con opciones sin TACC (sin gluten) bajo pedido previo.\n\nPolitica de mascotas: pet friendly, mascotas de hasta 15 kg con cargo de 3000 pesos por noche, informar al reservar.\n\nPolitica de cancelacion: sin cargo hasta 48 horas antes de la entrada. Con menos de 48 horas, cargo de la primera noche.\n\nEl hotel es libre de humo. No se permite fumar en habitaciones ni areas comunes cerradas. Hay sector para fumadores en la terraza.\n\nFORMAS DE PAGO: la sena de reserva se abona exclusivamente por transferencia bancaria. El saldo restante se abona en el hotel al momento del check-in, en efectivo en pesos, tarjeta de debito o credito Visa y Mastercard, o transferencia.\n\nDATOS PARA LA TRANSFERENCIA DE LA SENA: Titular Hotel Sierra del Lago SRL. CUIT 30-71234567-9. Banco Galicia. CBU 0070123430004567890123. Alias sierra.del.lago.hotel. Una vez realizada la transferencia, el huesped debe enviar el comprobante por este mismo chat para que la reserva quede confirmada.\n\nPROCESO DE RESERVA: para confirmar una reserva se solicita una sena del 30% del total de la estadia, que se abona por transferencia bancaria. El asistente virtual toma la reserva, informa el monto de la sena y los datos de transferencia, y recibe el comprobante por chat. La confirmacion final la valida el equipo del hotel al verificar el ingreso del dinero. El saldo se abona en el check-in.\n\nRecepcion abierta las 24 horas, todos los dias.\n\nEstacionamiento privado y gratuito para huespedes, capacidad limitada, conviene reservar el lugar al reservar la habitacion.\n\nComodidades: piscina exterior climatizada abierta de octubre a abril de 9 a 20 hs, solarium, sala de estar con TV, servicio de habitacion de 8 a 22 hs, recepcion bilingue espanol e ingles, lavanderia con cargo, guarda-equipaje sin cargo. No hay gimnasio propio pero hay convenio con un gimnasio a tres cuadras.\n\nHabitacion Individual: 1 persona, cama individual, bano privado, wifi, TV, aire frio calor, desayuno. Tarifa 35000 pesos por noche. Hay 2 habitaciones de este tipo.\n\nHabitacion Doble Estandar: 2 personas, cama matrimonial o dos individuales, bano privado, wifi, TV, aire, frigobar, desayuno. Tarifa 52000 pesos por noche. Hay 6 habitaciones de este tipo.\n\nHabitacion Doble Superior: 2 personas, mas amplia, vista al lago, balcon privado, todo lo de la estandar. Tarifa 68000 pesos por noche. Hay 4 habitaciones de este tipo.\n\nHabitacion Familiar: hasta 4 personas, una cama matrimonial y dos individuales, bano privado, wifi, TV, aire, frigobar, desayuno. Tarifa 85000 pesos por noche. Hay 3 habitaciones de este tipo.\n\nSuite: 2 personas, la mas amplia, living separado, vista al lago, balcon, hidromasaje, frigobar, desayuno en la habitacion si se solicita. Tarifa 120000 pesos por noche. Hay 2 suites en el hotel.\n\nTodas las tarifas son por noche y por habitacion, incluyen desayuno buffet e impuestos. Menores de 3 anos no abonan. Ninos de 4 a 10 anos abonan 50% en habitaciones familiares.\n\nDisponibilidad: varia segun temporada. Temporada alta (enero, febrero, Semana Santa, vacaciones de invierno de julio, fines de semana largos) tiene mayor demanda, conviene reservar con anticipacion. En temporada baja suele haber disponibilidad inmediata.\n\nUbicacion: a 400 metros de la costanera del Lago San Roque. Al centro (reloj Cucu y peatonal) 10 minutos a pie. Al Cerro de la Cruz y aerosilla 15 minutos en auto. A la terminal 12 minutos a pie. A Cordoba capital 40 minutos en auto. El hotel ayuda a coordinar excursiones: Cerro de la Cruz, paseos en lancha, diques, y salidas a Cosquin, La Falda y Tanti.\n\nPreguntas frecuentes: la pileta esta abierta de octubre a abril de 9 a 20 hs. El desayuno esta incluido en todas las tarifas. Se aceptan mascotas de hasta 15 kg con cargo. Hay estacionamiento gratuito con capacidad limitada. El lago esta a 5 minutos caminando. La sena se paga por transferencia al CBU 0070123430004567890123, alias sierra.del.lago.hotel.`;\n\nreturn [{ json: { text: conteudoHotel } }];"
+      },
+      "id": "f2afe3f0-cbc9-4499-bb4e-b5ea7802551c",
+      "name": "Conteudo do Hotel",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        384
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "insert",
+        "tableName": {
+          "__rl": true,
+          "value": "documents_hotel",
+          "mode": "list",
+          "cachedResultName": "documents_hotel"
+        },
+        "options": {
+          "queryName": "match_documents_hotel"
+        }
+      },
+      "id": "25e4ac0f-328e-4977-9814-63bebe93aa59",
+      "name": "Supabase Vector Store (Insert)",
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+      "typeVersion": 1,
+      "position": [
+        608,
+        384
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "67q0sf6a4UxFBzAa",
+          "name": "Supabase account Hoteleiro"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "3e29e2f0-bc0a-4520-942c-0669080be81c",
+      "name": "Recursive Character Text Splitter",
+      "type": "@n8n/n8n-nodes-langchain.textSplitterRecursiveCharacterTextSplitter",
+      "typeVersion": 1,
+      "position": [
+        560,
+        608
+      ]
+    },
+    {
+      "parameters": {
+        "jsonMode": "expressionData",
+        "jsonData": "={{ $json.text }}",
+        "options": {
+          "metadata": {
+            "metadataValues": [
+              {
+                "name": "origen",
+                "value": "hotel_sierra_del_lago"
+              }
+            ]
+          }
+        }
+      },
+      "id": "ec858d82-4082-4920-82a5-d35d797d2050",
+      "name": "Default Data Loader",
+      "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
+      "typeVersion": 1,
+      "position": [
+        752,
+        608
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "c757dba3-3cd1-482d-8d7e-b833c1223cd6",
+      "name": "Embeddings Google Gemini",
+      "type": "@n8n/n8n-nodes-langchain.embeddingsGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        480,
+        784
+      ],
+      "credentials": {
+        "googlePalmApi": {
+          "id": "rA7jQsJ3fxK4xBgR",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Iniciar Ingestao (Manual)": {
+      "main": [
+        [
+          {
+            "node": "Conteudo do Hotel",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Conteudo do Hotel": {
+      "main": [
+        [
+          {
+            "node": "Supabase Vector Store (Insert)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Recursive Character Text Splitter": {
+      "ai_textSplitter": [
+        [
+          {
+            "node": "Default Data Loader",
+            "type": "ai_textSplitter",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Default Data Loader": {
+      "ai_document": [
+        [
+          {
+            "node": "Supabase Vector Store (Insert)",
+            "type": "ai_document",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings Google Gemini": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Supabase Vector Store (Insert)",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": true
+  },
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "nodeGroups": [],
+  "tags": []
+}
